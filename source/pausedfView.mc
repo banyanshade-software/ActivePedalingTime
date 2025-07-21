@@ -13,6 +13,8 @@ class ActivePedalingTimerView extends WatchUi.DataField {
     private var mSpeedThreshold;
     private var mLastSpeed;
     private var mMovingStartTime;
+    private var mStopDelay;
+    private var mSlowStartTime;
     
     function initialize() {
         DataField.initialize();
@@ -21,9 +23,11 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mActivePedalingTime = 0;
         mLastUpdateTime = null;
         mIsMoving = false;
-        mSpeedThreshold = 0.7; // Seuil de vitesse en m/s (1m/s == 3.6 km/h)
+        mSpeedThreshold = 1.0; // Seuil de vitesse en m/s (3.6 km/h)
         mLastSpeed = 0;
         mMovingStartTime = null;
+        mStopDelay = 5000; // 5 secondes de délai avant arrêt
+        mSlowStartTime = null;
     }
 
     // Appelé quand l'activité démarre
@@ -36,10 +40,12 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         // Si on était en mouvement, ajouter le temps écoulé
         if (mIsMoving && mMovingStartTime != null) {
             var currentTime = System.getTimer();
-            mActivePedalingTime += (currentTime - mMovingStartTime);
+            var endTime = (mSlowStartTime != null) ? mSlowStartTime : currentTime;
+            mActivePedalingTime += (endTime - mMovingStartTime);
         }
         mIsMoving = false;
         mMovingStartTime = null;
+        mSlowStartTime = null;
     }
 
     // Appelé quand l'activité est en pause
@@ -47,14 +53,17 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         // Si on était en mouvement, ajouter le temps écoulé
         if (mIsMoving && mMovingStartTime != null) {
             var currentTime = System.getTimer();
-            mActivePedalingTime += (currentTime - mMovingStartTime);
+            var endTime = (mSlowStartTime != null) ? mSlowStartTime : currentTime;
+            mActivePedalingTime += (endTime - mMovingStartTime);
         }
         mIsMoving = false;
         mMovingStartTime = null;
+        mSlowStartTime = null;
     }
 
     // Appelé quand l'activité reprend après une pause
     function onTimerResume() {
+        mActivePedalingTime = 0; // reset active time
         mLastUpdateTime = System.getTimer();
     }
 
@@ -73,21 +82,42 @@ class ActivePedalingTimerView extends WatchUi.DataField {
             currentSpeed = info.currentSpeed;
         }
 
-        // Déterminer si on est en mouvement
+        // Déterminer si on est au-dessus du seuil de vitesse
+        var isAboveThreshold = (currentSpeed > mSpeedThreshold);
         var wasMoving = mIsMoving;
-        mIsMoving = (currentSpeed > mSpeedThreshold);
 
-        // Si on commence à bouger
-        if (mIsMoving && !wasMoving) {
-            mMovingStartTime = currentTime;
+        // Logique avec délai d'arrêt
+        if (isAboveThreshold) {
+            // On va assez vite
+            if (!mIsMoving) {
+                // On commence à bouger
+                mIsMoving = true;
+                mMovingStartTime = currentTime;
+            }
+            // Reset du délai d'arrêt
+            mSlowStartTime = null;
+            
+        } else {
+            // On est en dessous du seuil
+            if (mIsMoving) {
+                // On était en mouvement, commencer le décompte du délai
+                if (mSlowStartTime == null) {
+                    mSlowStartTime = currentTime;
+                } else {
+                    // Vérifier si le délai est écoulé
+                    if (currentTime - mSlowStartTime >= mStopDelay) {
+                        // Délai écoulé, arrêter le compteur
+                        if (mMovingStartTime != null) {
+                            // Ajouter le temps jusqu'au début du ralentissement
+                            mActivePedalingTime += (mSlowStartTime - mMovingStartTime);
+                        }
+                        mIsMoving = false;
+                        mMovingStartTime = null;
+                        mSlowStartTime = null;
+                    }
+                }
+            }
         }
-        // Si on s'arrête de bouger
-        else if (!mIsMoving && wasMoving && mMovingStartTime != null) {
-            mActivePedalingTime += (currentTime - mMovingStartTime);
-            mMovingStartTime = null;
-        }
-        // Si on continue de bouger, on ne fait rien ici
-        // (le temps sera ajouté quand on s'arrêtera)
 
         mLastSpeed = currentSpeed;
         mLastUpdateTime = currentTime;
@@ -99,7 +129,8 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         var totalTime = mActivePedalingTime;
         if (mIsMoving && mMovingStartTime != null) {
             var currentTime = System.getTimer();
-            totalTime += (currentTime - mMovingStartTime);
+            var endTime = (mSlowStartTime != null) ? mSlowStartTime : currentTime;
+            totalTime += (endTime - mMovingStartTime);
         }
 
         // Convertir en heures, minutes, secondes
@@ -159,9 +190,15 @@ class ActivePedalingTimerView extends WatchUi.DataField {
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        // Indicateur de mouvement
+        // Indicateur de mouvement avec état du délai
         if (mIsMoving) {
-            dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
+            if (mSlowStartTime != null) {
+                // En période de délai - orange
+                dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            } else {
+                // En mouvement normal - vert
+                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
+            }
             dc.fillCircle(dc.getWidth() - 8, 8, 3);
         }
     }
