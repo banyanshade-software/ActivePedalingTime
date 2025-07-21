@@ -21,7 +21,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mActivePedalingTime = 0;
         mLastUpdateTime = null;
         mIsMoving = false;
-        mSpeedThreshold = 1.0; // Seuil de vitesse en m/s (3.6 km/h)
+        mSpeedThreshold = 0.7; // Seuil de vitesse en m/s (3.6 km/h)
         mLastSpeed = 0;
         mMovingStartTime = null;
     }
@@ -95,17 +95,6 @@ class ActivePedalingTimerView extends WatchUi.DataField {
 
     // Appelé pour dessiner le datafield
     function onUpdate(dc) {
-        var bgColor = getBackgroundColor();
-        var fgColor = Graphics.COLOR_WHITE;
-        
-        if (bgColor == Graphics.COLOR_WHITE) {
-            fgColor = Graphics.COLOR_BLACK;
-        }
-
-        // Effacer l'arrière-plan
-        dc.setColor(bgColor, bgColor);
-        dc.clear();
-
         // Calculer le temps total à afficher
         var totalTime = mActivePedalingTime;
         if (mIsMoving && mMovingStartTime != null) {
@@ -122,53 +111,64 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         // Formater le temps
         var timeString;
         if (hours >= 1) {
-            timeString = Lang.format("$1$:$2$:$3$", [
-                hours.format("%d"),
-                minutes.format("%02d"),
-                seconds.format("%02d")
-            ]);
+            timeString = hours.format("%d") + ":" + 
+                        minutes.format("%02d") + ":" + 
+                        seconds.format("%02d");
         } else {
-            timeString = Lang.format("$1$:$2$", [
-                minutes.format("%d"),
-                seconds.format("%02d")
-            ]);
+            timeString = minutes.format("%d") + ":" + 
+                        seconds.format("%02d");
         }
 
-        // Définir la couleur et la police
+        // Définir les couleurs
+        var bgColor = getBackgroundColor();
+        var fgColor = (bgColor == Graphics.COLOR_WHITE) ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
+
+        // Effacer l'arrière-plan
+        dc.setColor(bgColor, bgColor);
+        dc.clear();
+
+        // Dessiner le label en haut
         dc.setColor(fgColor, Graphics.COLOR_TRANSPARENT);
-        
-        // Ajuster la taille de police selon l'espace disponible
-        var font = Graphics.FONT_LARGE;
+        dc.drawText(
+            dc.getWidth() / 2,
+            dc.getHeight() * 0.25,
+            Graphics.FONT_XTINY,
+            "TEMPS ACTIF",
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+
+        // Ajuster la taille de police pour la valeur
+        var font = Graphics.FONT_NUMBER_HOT;
         var textDimension = dc.getTextDimensions(timeString, font);
         
         if (textDimension[0] > dc.getWidth() * 0.9) {
-            font = Graphics.FONT_MEDIUM;
+            font = Graphics.FONT_NUMBER_MEDIUM;
             textDimension = dc.getTextDimensions(timeString, font);
         }
         
         if (textDimension[0] > dc.getWidth() * 0.9) {
-            font = Graphics.FONT_SMALL;
+            font = Graphics.FONT_LARGE;
         }
 
-        // Dessiner le temps au centre
+        // Dessiner la valeur du temps au centre
         dc.drawText(
             dc.getWidth() / 2,
-            dc.getHeight() / 2,
+            dc.getHeight() * 0.65,
             font,
             timeString,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        // Optionnel : Afficher un indicateur si on est en mouvement
+        // Indicateur de mouvement
         if (mIsMoving) {
             dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(dc.getWidth() - 10, 10, 3);
+            dc.fillCircle(dc.getWidth() - 8, 8, 3);
         }
     }
 
     // Retourner le label du datafield
     function getLabel() {
-        return "T. Actif";
+        return "Temps Actif";
     }
 }
 
