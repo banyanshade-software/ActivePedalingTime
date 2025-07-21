@@ -21,7 +21,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mActivePedalingTime = 0;
         mLastUpdateTime = null;
         mIsMoving = false;
-        mSpeedThreshold = 0.7; // Seuil de vitesse en m/s (3.6 km/h)
+        mSpeedThreshold = 0.7; // Seuil de vitesse en m/s (1m/s == 3.6 km/h)
         mLastSpeed = 0;
         mMovingStartTime = null;
     }

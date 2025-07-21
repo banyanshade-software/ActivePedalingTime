@@ -1,4 +1,4 @@
-import Toybox.Application;
+/*import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
@@ -26,3 +26,4 @@ class pausedfApp extends Application.AppBase {
 function getApp() as pausedfApp {
     return Application.getApp() as pausedfApp;
 }
+*/
