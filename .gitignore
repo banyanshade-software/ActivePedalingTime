@@ -1,0 +1,38 @@
+# Compiled output
+*.prg
+
+# SDK local build cache and intermediate files
+bin/
+build/
+debug/
+output/
+*.tmp
+*.bak
+
+# Eclipse IDE files (if used)
+.project
+.settings/
+.metadata/
+*.log
+
+# Mac system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Python or shell script bytecode (if using tooling/scripts)
+__pycache__/
+*.py[cod]
+*.swp
+
+# Optional: Ignore the SDK folder if placed inside the repo
+connectiq-sdk/
+
+# Logs or user data
+*.log
+*.user
+*.iml
+
