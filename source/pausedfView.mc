@@ -51,12 +51,18 @@ class ActivePedalingTimerView extends WatchUi.DataField {
     private var mSlowStartTime;
     private var fitField;
     const TACT_FIELD_ID = 0;
+    private var lbl;
 
+    function getLabel() {
+        // Récupère la chaîne selon la langue du système
+        return WatchUi.loadResource(Rez.Strings.fldname);
+    }
     function initialize() {
         DataField.initialize();
-
+        lbl = getLabel();
+      
         fitField = createField(
-            "time_active",
+            lbl,
             TACT_FIELD_ID,
             FitContributor.DATA_TYPE_FLOAT,
             {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"B"}
@@ -251,10 +257,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         }
     }
 
-    // Retourner le label du datafield
-    function getLabel() {
-        return "Temps Actif";
-    }
+   
 }
 
 class ActivePedalingTimerApp extends Application.AppBase {
