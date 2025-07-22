@@ -218,7 +218,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
             dc.getWidth() / 2,
             dc.getHeight() * 0.25,
             Graphics.FONT_XTINY,
-            "TEMPS ACTIF",
+            lbl,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
