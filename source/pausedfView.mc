@@ -197,10 +197,10 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         var timeString;
         if (hours >= 1) {
             timeString = hours.format("%d") + ":" + 
-                        minutes.format("%02d") + ":" + 
+                        minutes.format("%02d") + "--" + 
                         seconds.format("%02d");
         } else {
-            timeString = minutes.format("%d") + "::" + 
+            timeString = minutes.format("%d") + "//" + 
                         seconds.format("%02d");
         }
 
@@ -213,7 +213,8 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         dc.clear();
 
         // Dessiner le label en haut
-        dc.setColor(fgColor, Graphics.COLOR_TRANSPARENT);
+        //dc.setColor(fgColor, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_PINK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             dc.getWidth() / 2,
             dc.getHeight() * 0.25,
