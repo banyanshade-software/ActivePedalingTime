@@ -3,6 +3,40 @@ using Toybox.Graphics;
 using Toybox.System;
 using Toybox.ActivityRecording;
 using Toybox.Application;
+using Toybox.FitContributor;
+
+/*
+class MyFitContributor extends Fit.FitContributorBase {
+    
+    function initialize() {
+        FitContributorBase.initialize();
+    }
+    
+    function getFieldDescriptors() {
+        return [
+            new Fit.FieldDescriptor(
+                "my_custom_metric",
+                0, // Field ID unique
+                Fit.DATA_TYPE_FLOAT
+            )
+        ];
+    }
+
+
+    function onTimerLap() {
+        // Appelé à chaque lap
+    }
+    
+    function onTimerStart() {
+        // Appelé au début de l'activité
+    }
+    
+    function onTimerStop() {
+        // Appelé à la fin de l'activité
+    }
+}
+*/
+
 
 class ActivePedalingTimerView extends WatchUi.DataField {
     
@@ -15,9 +49,19 @@ class ActivePedalingTimerView extends WatchUi.DataField {
     private var mMovingStartTime;
     private var mStopDelay;
     private var mSlowStartTime;
-    
+    private var fitField;
+    const TACT_FIELD_ID = 0;
+
     function initialize() {
         DataField.initialize();
+
+        fitField = createField(
+            "time_active",
+            TACT_FIELD_ID,
+            FitContributor.DATA_TYPE_FLOAT,
+            {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"B"}
+        );
+    
         
         // Initialisation des variables
         mActivePedalingTime = 0;
@@ -61,8 +105,12 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mSlowStartTime = null;
     }
 
+    function updateFit() as Void {
+        fitField.setData(mActivePedalingTime);
+    }
     // Appelé quand l'activité reprend après une pause
     function onTimerResume() {
+        updateFit();
         mActivePedalingTime = 0; // reset active time
         mLastUpdateTime = System.getTimer();
     }
@@ -146,7 +194,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
                         minutes.format("%02d") + ":" + 
                         seconds.format("%02d");
         } else {
-            timeString = minutes.format("%d") + ":" + 
+            timeString = minutes.format("%d") + "::" + 
                         seconds.format("%02d");
         }
 
