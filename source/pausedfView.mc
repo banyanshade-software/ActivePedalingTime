@@ -29,7 +29,7 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     private var mLastUpdateTime;
     private var mBeginStopTime;
     //private var mBeginStartTime; // replaced by mMovingStartTime 
-     
+    private var mLastDuration;
     //private var mIsMoving;
     //private var mLastSpeed;
     private var mMovingStartTime;
@@ -59,6 +59,7 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
         mStartPedalingTime = null;
         mBeginStopTime = null;
         mMovingStartTime = null;
+        mLastDuration = null;
         
         //mIsMoving = false;
         //mLastSpeed = 0;
@@ -139,6 +140,7 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
                 case STARTING:
                     if (currentTime >= mStartDelay + mMovingStartTime)  {
                         state = CYCLING;
+                        mLastDuration = null;
                         mStartPedalingTime = currentTime - mStartDelay;
                         mMovingStartTime = null; // reset moving start time
                     }
@@ -173,6 +175,8 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
                 case SLOWING_DOWN:
                     if (currentTime >= mStopDelay + mBeginStopTime) {
                         // if we were slowing down and the delay is over, reset to idle
+                        mLastDuration = currentTime-mStartPedalingTime;
+                        updateFit(mLastDuration);
                         state = IDLE;
                         mStartPedalingTime = null; // reset active pedaling time
                         mMovingStartTime = null; // reset moving start time
@@ -187,24 +191,33 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
         mLastUpdateTime = currentTime;
         var pedalTime;
         if (mStartPedalingTime == null) {
-            pedalTime = 0; // no active pedaling time
+            pedalTime = null; // no active pedaling time
         } else {
             pedalTime = currentTime - mStartPedalingTime;
         }
-        var str = formatTime(pedalTime, currentSpeed);
+        var str = formatTime(pedalTime, mLastDuration, currentSpeed);
         return str;
     }
 
-    // Formater le temps en chaîne
-    function formatTime(timeInMillis, currentSpeed) {
+    // Format to string. the currentSpeed info is used only for debug and should be removed
+    function formatTime(timeInMillis, lastDur, currentSpeed) {
+        var isLast = false;
+        if (!timeInMillis && lastDur) {
+            timeInMillis = lastDur; // display last duration if no current time
+            isLast = true;
+        }
         var totalSeconds = timeInMillis / 1000;
         var hours = Math.floor(totalSeconds / 3600);
         var minutes = Math.floor((totalSeconds % 3600) / 60);
         var seconds = Math.floor(totalSeconds % 60);
         var timeString;
-        
-        timeString = hours.format("%d") + ":" 
+        if (isLast) {
+            timeString = "("+hours.format("%d") + ":" 
+                         + minutes.format("%02d")+")";
+        } else {
+            timeString = hours.format("%d") + ":" 
                          + minutes.format("%02d");
+        }
         if (true) { 
             var v = currentSpeed * 3.6;
             timeString += ":"
