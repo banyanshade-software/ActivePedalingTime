@@ -197,10 +197,10 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         var timeString;
         if (hours >= 1) {
             timeString = hours.format("%d") + ":" + 
-                        minutes.format("%02d") + "--" + 
+                        minutes.format("%02d") + ":" + 
                         seconds.format("%02d");
         } else {
-            timeString = minutes.format("%d") + "//" + 
+            timeString = minutes.format("%d") + ":" + 
                         seconds.format("%02d");
         }
 
