@@ -202,9 +202,12 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     // Format to string. the currentSpeed info is used only for debug and should be removed
     function formatTime(timeInMillis, lastDur, currentSpeed) {
         var isLast = false;
-        if (!timeInMillis && lastDur) {
+        if ((timeInMillis == null) && (lastDur != null)) {
             timeInMillis = lastDur; // display last duration if no current time
             isLast = true;
+        }
+        if (timeInMillis == null) {
+            return "(-)"; // no time data available
         }
         var totalSeconds = timeInMillis / 1000;
         var hours = Math.floor(totalSeconds / 3600);
