@@ -4,6 +4,7 @@ using Toybox.System;
 using Toybox.ActivityRecording;
 using Toybox.Application;
 using Toybox.FitContributor;
+using Toybox.Lang;
 
 /*
 class MyFitContributor extends Fit.FitContributorBase {
@@ -38,7 +39,7 @@ class MyFitContributor extends Fit.FitContributorBase {
 */
 
 
-class ActivePedalingTimerView extends WatchUi.DataField {
+class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     
     // Variables pour tracker le temps de pédalage actif
     private var mActivePedalingTime;
@@ -50,23 +51,22 @@ class ActivePedalingTimerView extends WatchUi.DataField {
     private var mStopDelay;
     private var mSlowStartTime;
     private var fitField;
-    const TACT_FIELD_ID = 0;
-    private var lbl;
+    //private var lbl;
 
     function getLabel() {
         // Récupère la chaîne selon la langue du système
         return WatchUi.loadResource(Rez.Strings.fldname);
     }
     function initialize() {
-        DataField.initialize();
-        lbl = getLabel();
+        SimpleDataField.initialize();
+        label = getLabel();
       
-        fitField = createField(
+        /*fitField = createField(
             lbl,
             TACT_FIELD_ID,
             FitContributor.DATA_TYPE_FLOAT,
             {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"B"}
-        );
+        );*/
     
         
         // Initialisation des variables
@@ -76,7 +76,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mSpeedThreshold = 1.0; // Seuil de vitesse en m/s (3.6 km/h)
         mLastSpeed = 0;
         mMovingStartTime = null;
-        mStopDelay = 5000; // 5 secondes de délai avant arrêt
+        mStopDelay = 15*1000; // 5 secondes de délai avant arrêt
         mSlowStartTime = null;
     }
 
@@ -127,7 +127,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         
         if (mLastUpdateTime == null) {
             mLastUpdateTime = currentTime;
-            return;
+            return "---";
         }
 
         // Récupérer la vitesse actuelle
@@ -138,7 +138,7 @@ class ActivePedalingTimerView extends WatchUi.DataField {
 
         // Déterminer si on est au-dessus du seuil de vitesse
         var isAboveThreshold = (currentSpeed > mSpeedThreshold);
-        var wasMoving = mIsMoving;
+        //var wasMoving = mIsMoving;
 
         // Logique avec délai d'arrêt
         if (isAboveThreshold) {
@@ -175,88 +175,23 @@ class ActivePedalingTimerView extends WatchUi.DataField {
 
         mLastSpeed = currentSpeed;
         mLastUpdateTime = currentTime;
+        var str = formatTime(mActivePedalingTime);
+        return str;
     }
 
-    // Appelé pour dessiner le datafield
-    function onUpdate(dc) {
-        // Calculer le temps total à afficher
-        var totalTime = mActivePedalingTime;
-        if (mIsMoving && mMovingStartTime != null) {
-            var currentTime = System.getTimer();
-            var endTime = (mSlowStartTime != null) ? mSlowStartTime : currentTime;
-            totalTime += (endTime - mMovingStartTime);
-        }
-
-        // Convertir en heures, minutes, secondes
-        var totalSeconds = totalTime / 1000;
-        var hours = totalSeconds / 3600;
-        var minutes = (totalSeconds % 3600) / 60;
-        var seconds = totalSeconds % 60;
-
-        // Formater le temps
+    // Formater le temps en chaîne
+    function formatTime(timeInMillis) {
+        var totalSeconds = timeInMillis / 1000;
+        var hours = Math.floor(totalSeconds / 3600);
+        var minutes = Math.floor((totalSeconds % 3600) / 60);
+        //var seconds = Math.floor(totalSeconds % 60);
         var timeString;
-        if (hours >= 1) {
-            timeString = hours.format("%d") + ":" + 
-                        minutes.format("%02d") + ":" + 
-                        seconds.format("%02d");
-        } else {
-            timeString = minutes.format("%d") + ":" + 
-                        seconds.format("%02d");
-        }
-
-        // Définir les couleurs
-        var bgColor = getBackgroundColor();
-        var fgColor = (bgColor == Graphics.COLOR_WHITE) ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
-
-        // Effacer l'arrière-plan
-        dc.setColor(bgColor, bgColor);
-        dc.clear();
-
-        // Dessiner le label en haut
-        //dc.setColor(fgColor, Graphics.COLOR_TRANSPARENT);
-        dc.setColor(Graphics.COLOR_PINK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() * 0.25,
-            Graphics.FONT_XTINY,
-            lbl,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
-        );
-
-        // Ajuster la taille de police pour la valeur
-        var font = Graphics.FONT_NUMBER_HOT;
-        var textDimension = dc.getTextDimensions(timeString, font);
         
-        if (textDimension[0] > dc.getWidth() * 0.9) {
-            font = Graphics.FONT_NUMBER_MEDIUM;
-            textDimension = dc.getTextDimensions(timeString, font);
-        }
-        
-        if (textDimension[0] > dc.getWidth() * 0.9) {
-            font = Graphics.FONT_LARGE;
-        }
-
-        // Dessiner la valeur du temps au centre
-        dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() * 0.65,
-            font,
-            timeString,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
-        );
-
-        // Indicateur de mouvement avec état du délai
-        if (mIsMoving) {
-            if (mSlowStartTime != null) {
-                // En période de délai - orange
-                dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
-            } else {
-                // En mouvement normal - vert
-                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-            }
-            dc.fillCircle(dc.getWidth() - 8, 8, 3);
-        }
+        timeString = hours.format("%d") + ":" + 
+                         minutes.format("%02d");
+        return timeString;
     }
+
 
    
 }
