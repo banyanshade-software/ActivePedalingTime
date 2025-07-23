@@ -48,17 +48,18 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     function initialize() {
         SimpleDataField.initialize();
         label = getLabel();
-        
 
-        mLastUpdateTime = null;
-        mStartPedalingTime = null;
-        mBeginStopTime = null;
-        mMovingStartTime = null;
         //parameters
         mStopDelay = 15*1000; // 15 seconds delay before stopping
         mStartDelay = 3*1000; // 3 seconds delay before starting
         mSpeedThreshold = 1.0; // Seuil de vitesse en m/s (3.6 km/h)
 
+
+        mLastUpdateTime = null;
+        mStartPedalingTime = null;
+        mBeginStopTime = null;
+        mMovingStartTime = null;
+        
         //mIsMoving = false;
         //mLastSpeed = 0;
         mMovingStartTime = null;
@@ -205,10 +206,11 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
         timeString = hours.format("%d") + ":" 
                          + minutes.format("%02d");
         if (true) { 
+            var v = currentSpeed * 3.6;
             timeString += ":"
                          + seconds.format("%02d")
                          + "/" + state.toString()
-                         + "/" + currentSpeed.format("%0.2f") 
+                         + "/" + v.format("%0.2f") 
                          ;
         }
         return timeString;
