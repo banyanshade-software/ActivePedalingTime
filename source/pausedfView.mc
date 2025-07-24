@@ -4,83 +4,88 @@ using Toybox.System;
 using Toybox.ActivityRecording;
 using Toybox.Application;
 using Toybox.FitContributor;
+using Toybox.Lang;
 
-/*
-class MyFitContributor extends Fit.FitContributorBase {
-    
-    function initialize() {
-        FitContributorBase.initialize();
-    }
-    
-    function getFieldDescriptors() {
-        return [
-            new Fit.FieldDescriptor(
-                "my_custom_metric",
-                0, // Field ID unique
-                Fit.DATA_TYPE_FLOAT
-            )
-        ];
-    }
+  // FSM states
+enum  {
+    IDLE,
+    STARTING,
+    CYCLING,
+    SLOWING_DOWN
+ }
 
+const TACT_FIELD_ID = 101;
 
-    function onTimerLap() {
-        // Appelé à chaque lap
-    }
+class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     
-    function onTimerStart() {
-        // Appelé au début de l'activité
-    }
-    
-    function onTimerStop() {
-        // Appelé à la fin de l'activité
-    }
-}
-*/
+   
+    private var state = IDLE;
 
-
-class ActivePedalingTimerView extends WatchUi.DataField {
-    
-    // Variables pour tracker le temps de pédalage actif
-    private var mActivePedalingTime;
-    private var mLastUpdateTime;
-    private var mIsMoving;
-    private var mSpeedThreshold;
-    private var mLastSpeed;
-    private var mMovingStartTime;
+    // parameters (set at initialization, value are hardcoded for now)
     private var mStopDelay;
-    private var mSlowStartTime;
+    private var mStartDelay;
+    private var mSpeedThreshold;
+
+    // Variables pour tracker le temps de pédalage actif
+    private var mStartPedalingTime;
+    private var mLastUpdateTime;
+    private var mBeginStopTime;
+    //private var mBeginStartTime; // replaced by mMovingStartTime 
+    private var mLastDuration;
+    //private var mIsMoving;
+    //private var mLastSpeed;
+    private var mMovingStartTime;
+  
+    //private var mSlowStartTime;
     private var fitField;
-    const TACT_FIELD_ID = 0;
+
+  
+
+    function getLabel() {
+        // Récupère la chaîne selon la langue du système
+        return WatchUi.loadResource(Rez.Strings.fldname);
+    }
+
 
     function initialize() {
-        DataField.initialize();
+        SimpleDataField.initialize();
+        label = getLabel();
 
-        fitField = createField(
-            "time_active",
+        //parameters
+        mStopDelay = 15*1000; // 15 seconds delay before stopping
+        mStartDelay = 3*1000; // 3 seconds delay before starting
+        mSpeedThreshold = 1.0; // Seuil de vitesse en m/s (3.6 km/h)
+
+
+        mLastUpdateTime = null;
+        mStartPedalingTime = null;
+        mBeginStopTime = null;
+        mMovingStartTime = null;
+        mLastDuration = null;
+        
+        //mIsMoving = false;
+        //mLastSpeed = 0;
+        mMovingStartTime = null;
+        //mSlowStartTime = null;
+
+        if (true) {
+         fitField = createField(
+            "nobreak",
             TACT_FIELD_ID,
             FitContributor.DATA_TYPE_FLOAT,
-            {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"B"}
-        );
-    
-        
-        // Initialisation des variables
-        mActivePedalingTime = 0;
-        mLastUpdateTime = null;
-        mIsMoving = false;
-        mSpeedThreshold = 1.0; // Seuil de vitesse en m/s (3.6 km/h)
-        mLastSpeed = 0;
-        mMovingStartTime = null;
-        mStopDelay = 5000; // 5 secondes de délai avant arrêt
-        mSlowStartTime = null;
+            {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"min"}
+          );
+        }
     }
+
 
     // Appelé quand l'activité démarre
-    function onTimerStart() {
-        mLastUpdateTime = System.getTimer();
-    }
+    //function onTimerStart() {
+    //    mLastUpdateTime = System.getTimer();
+    //}
 
     // Appelé quand l'activité s'arrête
-    function onTimerStop() {
+    /*function onTimerStop() {
         // Si on était en mouvement, ajouter le temps écoulé
         if (mIsMoving && mMovingStartTime != null) {
             var currentTime = System.getTimer();
@@ -90,9 +95,10 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mIsMoving = false;
         mMovingStartTime = null;
         mSlowStartTime = null;
-    }
+    }*/
 
     // Appelé quand l'activité est en pause
+    /*
     function onTimerPause() {
         // Si on était en mouvement, ajouter le temps écoulé
         if (mIsMoving && mMovingStartTime != null) {
@@ -103,158 +109,145 @@ class ActivePedalingTimerView extends WatchUi.DataField {
         mIsMoving = false;
         mMovingStartTime = null;
         mSlowStartTime = null;
-    }
+    }*/
 
-    function updateFit() as Void {
-        fitField.setData(mActivePedalingTime);
-    }
+    
+    /*
     // Appelé quand l'activité reprend après une pause
     function onTimerResume() {
         updateFit();
         mActivePedalingTime = 0; // reset active time
         mLastUpdateTime = System.getTimer();
     }
+    */
 
-    // Appelé à chaque mise à jour des données
+    function updateFit(ms) as Void {
+       if (fitField) {
+         var minutes = ms / 60000; // convert milliseconds to minutes  
+         fitField.setData(minutes);
+       }
+    }
+    
+    // called periodically to compute the data field value
     function compute(info) {
         var currentTime = System.getTimer();
         
         if (mLastUpdateTime == null) {
             mLastUpdateTime = currentTime;
-            return;
+            return "---";
         }
 
-        // Récupérer la vitesse actuelle
+        // Check current speed
         var currentSpeed = 0;
         if (info has :currentSpeed && info.currentSpeed != null) {
             currentSpeed = info.currentSpeed;
+        } else {
+            return "---"; // no speed data available
         }
-
-        // Déterminer si on est au-dessus du seuil de vitesse
         var isAboveThreshold = (currentSpeed > mSpeedThreshold);
-        var wasMoving = mIsMoving;
-
-        // Logique avec délai d'arrêt
         if (isAboveThreshold) {
-            // On va assez vite
-            if (!mIsMoving) {
-                // On commence à bouger
-                mIsMoving = true;
-                mMovingStartTime = currentTime;
-            }
-            // Reset du délai d'arrêt
-            mSlowStartTime = null;
-            
-        } else {
-            // On est en dessous du seuil
-            if (mIsMoving) {
-                // On était en mouvement, commencer le décompte du délai
-                if (mSlowStartTime == null) {
-                    mSlowStartTime = currentTime;
-                } else {
-                    // Vérifier si le délai est écoulé
-                    if (currentTime - mSlowStartTime >= mStopDelay) {
-                        // Délai écoulé, arrêter le compteur
-                        if (mMovingStartTime != null) {
-                            // Ajouter le temps jusqu'au début du ralentissement
-                            mActivePedalingTime += (mSlowStartTime - mMovingStartTime);
-                        }
-                        mIsMoving = false;
-                        mMovingStartTime = null;
-                        mSlowStartTime = null;
+           switch (state) {
+                case IDLE:
+                    mMovingStartTime = currentTime;
+                    state = STARTING;
+                    break;
+                case STARTING:
+                    if (currentTime >= mStartDelay + mMovingStartTime)  {
+                        state = CYCLING;
+                        mLastDuration = null;
+                        mStartPedalingTime = currentTime - mStartDelay;
+                        mMovingStartTime = null; // reset moving start time
                     }
-                }
-            }
-        }
-
-        mLastSpeed = currentSpeed;
-        mLastUpdateTime = currentTime;
-    }
-
-    // Appelé pour dessiner le datafield
-    function onUpdate(dc) {
-        // Calculer le temps total à afficher
-        var totalTime = mActivePedalingTime;
-        if (mIsMoving && mMovingStartTime != null) {
-            var currentTime = System.getTimer();
-            var endTime = (mSlowStartTime != null) ? mSlowStartTime : currentTime;
-            totalTime += (endTime - mMovingStartTime);
-        }
-
-        // Convertir en heures, minutes, secondes
-        var totalSeconds = totalTime / 1000;
-        var hours = totalSeconds / 3600;
-        var minutes = (totalSeconds % 3600) / 60;
-        var seconds = totalSeconds % 60;
-
-        // Formater le temps
-        var timeString;
-        if (hours >= 1) {
-            timeString = hours.format("%d") + ":" + 
-                        minutes.format("%02d") + ":" + 
-                        seconds.format("%02d");
+                    break;
+                case CYCLING:
+                    // nothing to do, just continue counting
+                    break;
+                case SLOWING_DOWN:
+                    state = CYCLING; // reset to cycling state
+                    mBeginStopTime = null; 
+                    break;
+                default:
+                    break;
+           }
         } else {
-            timeString = minutes.format("%d") + "::" + 
-                        seconds.format("%02d");
+            // bellow threshold
+            switch (state) {
+                case IDLE:
+                    // nothing to do, already idle
+                    break;
+                case STARTING:
+                    // if we were starting, reset to idle
+                    state = IDLE;
+                    mMovingStartTime = null; // reset moving start time
+                    break;
+                case CYCLING:
+                    // if we were cycling, start slowing down
+                    mBeginStopTime = currentTime;
+                    state = SLOWING_DOWN;
+                    break;
+
+                case SLOWING_DOWN:
+                    if (currentTime >= mStopDelay + mBeginStopTime) {
+                        // if we were slowing down and the delay is over, reset to idle
+                        mLastDuration = currentTime-mStartPedalingTime;
+                        updateFit(mLastDuration);
+                        state = IDLE;
+                        mStartPedalingTime = null; // reset active pedaling time
+                        mMovingStartTime = null; // reset moving start time
+                        mBeginStopTime = null; // reset begin stop time
+                    }
+                    break;
+                default:
+                    break;
+           }
         }
-
-        // Définir les couleurs
-        var bgColor = getBackgroundColor();
-        var fgColor = (bgColor == Graphics.COLOR_WHITE) ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE;
-
-        // Effacer l'arrière-plan
-        dc.setColor(bgColor, bgColor);
-        dc.clear();
-
-        // Dessiner le label en haut
-        dc.setColor(fgColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() * 0.25,
-            Graphics.FONT_XTINY,
-            "TEMPS ACTIF",
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
-        );
-
-        // Ajuster la taille de police pour la valeur
-        var font = Graphics.FONT_NUMBER_HOT;
-        var textDimension = dc.getTextDimensions(timeString, font);
         
-        if (textDimension[0] > dc.getWidth() * 0.9) {
-            font = Graphics.FONT_NUMBER_MEDIUM;
-            textDimension = dc.getTextDimensions(timeString, font);
+        mLastUpdateTime = currentTime;
+        var pedalTime;
+        if (mStartPedalingTime == null) {
+            pedalTime = null; // no active pedaling time
+        } else {
+            pedalTime = currentTime - mStartPedalingTime;
         }
-        
-        if (textDimension[0] > dc.getWidth() * 0.9) {
-            font = Graphics.FONT_LARGE;
-        }
-
-        // Dessiner la valeur du temps au centre
-        dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() * 0.65,
-            font,
-            timeString,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
-        );
-
-        // Indicateur de mouvement avec état du délai
-        if (mIsMoving) {
-            if (mSlowStartTime != null) {
-                // En période de délai - orange
-                dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
-            } else {
-                // En mouvement normal - vert
-                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-            }
-            dc.fillCircle(dc.getWidth() - 8, 8, 3);
-        }
+        var str = formatTime(pedalTime, mLastDuration, currentSpeed);
+        return str;
     }
 
-    // Retourner le label du datafield
-    function getLabel() {
-        return "Temps Actif";
+    // Format to string. the currentSpeed info is used only for debug and should be removed
+    function formatTime(timeInMillis, lastDur, currentSpeed) {
+        var isLast = false;
+        if ((timeInMillis == null) && (lastDur != null)) {
+            timeInMillis = lastDur; // display last duration if no current time
+            isLast = true;
+        }
+        if (timeInMillis == null) {
+            return "(~)"; // no time data available
+        }
+        var totalSeconds = timeInMillis / 1000;
+        var hours = Math.floor(totalSeconds / 3600);
+        var minutes = Math.floor((totalSeconds % 3600) / 60);
+        var seconds = Math.floor(totalSeconds % 60);
+        var timeString;
+        if (isLast) {
+            timeString = "("+hours.format("%d") + ":" 
+                         + minutes.format("%02d")+")";
+        } else {
+            timeString = hours.format("%d") + ":" 
+                         + minutes.format("%02d");
+        }
+        if (false) { 
+            var v = currentSpeed * 3.6;
+            timeString += ":"
+                         + seconds.format("%02d")
+                         + "/" + state.toString()
+                         + "/" + v.format("%0.2f") 
+                         ;
+        }
+        return timeString;
     }
+
+
+   
 }
 
 class ActivePedalingTimerApp extends Application.AppBase {

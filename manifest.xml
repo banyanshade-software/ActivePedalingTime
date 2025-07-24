@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
-    <iq:application entry="ActivePedalingTimerApp" id="29d5e20f-d308-4885-bcb5-cd5032f6c8f8" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="5.0.0" name="@Strings.AppName" type="datafield" version="1.0.0">
+    <iq:application entry="ActivePedalingTimerApp" id="3d0d5be0-e2aa-46e4-9bda-7f7cd6e78882" 
+    launcherIcon="@Drawables.LauncherIcon" minSdkVersion="3.0.0" name="@Strings.AppName" type="datafield" version="1.1.0">
         <iq:products>
             <!-- Garmin Edge Series -->
             <!-- Tous les appareils Edge compatibles -->
@@ -11,6 +12,7 @@
             <iq:product id="edgeexplore2"/>
             <iq:product id="edgemtb"/>
             <iq:product id="epix2"/>
+            <iq:product id="edgeexplore"/>
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="FitContributor"/>
