@@ -14,6 +14,8 @@ enum  {
     SLOWING_DOWN
  }
 
+const TACT_FIELD_ID = 0;
+
 class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     
    
@@ -65,6 +67,15 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
         //mLastSpeed = 0;
         mMovingStartTime = null;
         //mSlowStartTime = null;
+
+        if (false) {
+         fitField = createField(
+            "nobreak",
+            TACT_FIELD_ID,
+            FitContributor.DATA_TYPE_FLOAT,
+            {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"B"}
+          );
+        }
     }
 
 
@@ -111,7 +122,9 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     */
 
     function updateFit(v) as Void {
-        fitField.setData(v);
+       if (fitField) {
+         fitField.setData(v);
+       }
     }
     
     // called periodically to compute the data field value
