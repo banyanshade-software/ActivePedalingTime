@@ -235,7 +235,7 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
             timeString = hours.format("%d") + ":" 
                          + minutes.format("%02d");
         }
-        if (true) { 
+        if (false) { 
             var v = currentSpeed * 3.6;
             timeString += ":"
                          + seconds.format("%02d")
