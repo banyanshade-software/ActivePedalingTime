@@ -14,7 +14,7 @@ enum  {
     SLOWING_DOWN
  }
 
-const TACT_FIELD_ID = 0;
+const TACT_FIELD_ID = 101;
 
 class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     
@@ -68,12 +68,12 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
         mMovingStartTime = null;
         //mSlowStartTime = null;
 
-        if (false) {
+        if (true) {
          fitField = createField(
             "nobreak",
             TACT_FIELD_ID,
             FitContributor.DATA_TYPE_FLOAT,
-            {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"B"}
+            {:mesgType=>FitContributor.MESG_TYPE_RECORD, :units=>"min"}
           );
         }
     }
@@ -121,9 +121,10 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
     }
     */
 
-    function updateFit(v) as Void {
+    function updateFit(ms) as Void {
        if (fitField) {
-         fitField.setData(v);
+         var minutes = ms / 60000; // convert milliseconds to minutes  
+         fitField.setData(minutes);
        }
     }
     
@@ -220,7 +221,7 @@ class ActivePedalingTimerView extends WatchUi.SimpleDataField {
             isLast = true;
         }
         if (timeInMillis == null) {
-            return "(-)"; // no time data available
+            return "(~)"; // no time data available
         }
         var totalSeconds = timeInMillis / 1000;
         var hours = Math.floor(totalSeconds / 3600);
